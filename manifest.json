@@ -1,0 +1,29 @@
+ {
+    "manifest_version": 2,
+    "name": "LinkedIn Clock",
+    "version": "1.0",
+    "description": "See what time it is for your prospects before you bother them!",
+    "permissions": [
+      "activeTab",
+      "contextMenus",
+      "*://linkedin.com/*"
+    ],
+    "background": {
+      "scripts": ["eventPage.js"],
+      "persistent": false
+    },
+    "content_scripts":[
+        {
+            "matches":["*://www.linkedin.com/*"],
+            "css": ["content.css"],
+            "run_at": "document_end",
+            "js":[ "jquery-3.3.1.min.js", "content.js"]
+        }
+    ],  
+    "browser_action": {
+      "default_icon": "icon_16.png",
+      "default_popup": "popup.html"
+    },
+    "web_accessible_resources": ["myStyles.css"]
+
+  }
