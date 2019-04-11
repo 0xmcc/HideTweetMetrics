@@ -13,7 +13,7 @@
     },
     "content_scripts":[
         {
-            "matches":["*://www.linkedin.com/*"],
+            "matches":["*://www.linkedin.com/in/*"],
             "css": ["content.css"],
             "run_at": "document_end",
             "js":[ "jquery-3.3.1.min.js", "content.js"]
