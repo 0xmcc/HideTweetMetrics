@@ -5,12 +5,11 @@
     "description": "See what time it is for your prospects before you bother them!",
     "permissions": [
       "activeTab",
-      "contextMenus",
+      "tabs",
       "*://linkedin.com/*"
     ],
     "background": {
-      "scripts": ["eventPage.js"],
-      "persistent": false
+      "scripts": ["eventPage.js"]
     },
     "content_scripts":[
         {
@@ -21,9 +20,9 @@
         }
     ],  
     "browser_action": {
-      "default_icon": "icon_16.png",
+      "default_icon": "icon_128.png",
       "default_popup": "popup.html"
     },
-    "web_accessible_resources": ["myStyles.css"]
+    "web_accessible_resources": ["myStyles.css", "images/*.png", "content.js", "icon_16.png"]
 
   }

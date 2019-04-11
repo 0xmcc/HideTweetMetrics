@@ -1,4 +1,20 @@
 #time {
-	background: #3F7600;
+	margin-top: 8px;
+	padding: 2px 8px;
+	display: inline-block;
+
+}
+
+#timeLabel {
+	font-weight: 700;
+	font-size: 25px;
+}
+
+.time-open {
+	background: #7ED321;
+	color: #272721;
+}
+.time-closed {
+	background: #fb584d;
 	color: white;
 }
