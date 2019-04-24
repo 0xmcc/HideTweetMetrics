@@ -1,9 +1,33 @@
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>LinkedIn Clock</title>
-	</head>
-	<body>
-		<h2> Built by Marko Calvo-Cruz  </h2>
-	</body>
-</html>
+ <!DOCTYPE html>
+  <html>
+    <head>
+
+      <link href="popup.css" rel="stylesheet" type="text/css">
+    
+    </head>
+    <body>
+      <h2> Couldn't find what you were looking for?</h2>
+      <p id="subtitle">Search here </p>
+      <form id="form" method="POST">
+          <div class="form-group">
+            <label for="city">City:</label>
+            <input class="form-control" type="text" id="city" name="city_name" placeholder="Placeholder">
+          </div>
+          <div class="form-group" id="region-group">
+            <label for="region">U.S. State:</label>
+            <select class="form-control select" id="region" name="region_name">
+              <option value="null">None</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="country">Country:</label>
+            <select class="form-control select" id="country" name="country_name"></select>
+          </div>
+        <br />
+          <input class="form-control" id="submit" type="submit">
+      </form>
+
+      <script src="jquery-3.3.1.min.js"></script>
+      <script src="popup.js"></script>
+    </body>
+  </html>
