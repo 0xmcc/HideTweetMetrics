@@ -41,44 +41,43 @@ function ensureSendMessage(tabId, message, callback){
     }
   });
 }
+  // chrome.webNavigation.onHistoryStateUpdated.addListener(function(details) {
+  //   chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+  //       ensureSendMessage(tabs[0].id, {message: "hello", url: tabs[0].url});
 
-$(document).ready(function () {
-  /*
-  chrome.webNavigation.onHistoryStateUpdated.addListener(function(details) {
-    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-      //if tabs[0].url.includes("linkedin.com") {
-        ensureSendMessage(tabs[0].id, {message: "hello", url: tabs[0].url});
-     // }
-    });
-  });*/
-  
-  chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-    //chrome.webNavigation.onCompleted.addListener(function(tabId, changeInfo, tab) {
-   // if (changeInfo.status === "complete") {
-      if (changeInfo.url) {
-          //ensureSendMessage(tabId, { message: 'tab', url: changeInfo.url})
-        chrome.tabs.sendMessage( tabId, {
-          message: 'tab',
-          url: changeInfo.url
-        })
-      } else if (tab.url) {
-          //ensureSendMessage(tabId, { message: 'taby', url: tab.url})
-
-        
+  //   });
+    chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+      if (changeInfo.status === "complete") {
+        if (changeInfo.url) {
+            //ensureSendMessage(tabId, { message: 'tab', url: changeInfo.url})
           chrome.tabs.sendMessage( tabId, {
-            message: 'tab',
-            url: tab.url
+            message: 'hello',
+            url: changeInfo.url
           })
-      } else {
-        //  ensureSendMessage(tabId, { message: 'fail'})
-  /*
-          chrome.tabs.sendMessage( tabId, {
-            message: 'fail'
-          })      */
+        } else if (tab.url) {
+            //ensureSendMessage(tabId, { message: 'taby', url: tab.url})
+
+          
+            chrome.tabs.sendMessage( tabId, {
+              message: 'hello',
+              url: tab.url
+            })
+        } else {
+          //  ensureSendMessage(tabId, { message: 'fail'})
+    
+            chrome.tabs.sendMessage( tabId, {
+              message: 'fail'
+            })      
+        }
       }
-    //}
 
   });
+$(document).ready(function () {
+
+
+  });
+  
+
 
    //$("#getAuth").click(function () { getAuth(); });
 
@@ -97,7 +96,7 @@ function getAuth() {
     }
 
 }
-});
+
 /**
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     if (changeInfo.url) {

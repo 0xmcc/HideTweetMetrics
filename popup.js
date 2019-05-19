@@ -85,7 +85,7 @@ $(document).ready(function() {
 				if (res.status == "OK") {
 					const results = groupByTZ(res.zones)
 					if (Object.keys(results).length == 1) {
-						return parseClockFromJSON(res.zones[0])
+						return parseClockFromJSON2(res.zones[0])
 					} else {
 						console.log(results)
 						var count = 0
@@ -150,7 +150,7 @@ function createURL(city, region, country) {
 
 	return baseURL
 }
-function parseClockFromJSON(json) {
+function parseClockFromJSON2(json) {
 	console.log(json)
 	const zone = json  
 	var time = zone.formatted
