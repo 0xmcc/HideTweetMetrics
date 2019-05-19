@@ -19,9 +19,68 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
         chrome.tabs.sendMessage(tabId, 'url-update');
     }
 });**/
-var ci = chrome.identity;
+//var ci = chrome.identity;
+// Background
 
-$(document).ready(function () { $("#getAuth").click(function () { getAuth(); });
+function ensureSendMessage(tabId, message, callback){
+  chrome.tabs.sendMessage(tabId, {ping: true}, function(response){
+    if(response && response.pong) { // Content script ready
+      chrome.tabs.sendMessage(tabId, message, callback);
+    } else { // No listener on the other end
+      chrome.tabs.executeScript(tabId, {file: "jquery-3.3.1.min.js"}, function(){
+
+        chrome.tabs.executeScript(tabId, {file: "content.js"}, function(){
+          if(chrome.runtime.lastError) {
+            console.error(chrome.runtime.lastError);
+            throw Error("Unable to inject script into tab " + tabId);
+          }
+          // OK, now it's injected and ready
+          chrome.tabs.sendMessage(tabId, message, callback);
+        });
+      });
+    }
+  });
+}
+
+$(document).ready(function () {
+  /*
+  chrome.webNavigation.onHistoryStateUpdated.addListener(function(details) {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      //if tabs[0].url.includes("linkedin.com") {
+        ensureSendMessage(tabs[0].id, {message: "hello", url: tabs[0].url});
+     // }
+    });
+  });*/
+  
+  chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+    //chrome.webNavigation.onCompleted.addListener(function(tabId, changeInfo, tab) {
+   // if (changeInfo.status === "complete") {
+      if (changeInfo.url) {
+          //ensureSendMessage(tabId, { message: 'tab', url: changeInfo.url})
+        chrome.tabs.sendMessage( tabId, {
+          message: 'tab',
+          url: changeInfo.url
+        })
+      } else if (tab.url) {
+          //ensureSendMessage(tabId, { message: 'taby', url: tab.url})
+
+        
+          chrome.tabs.sendMessage( tabId, {
+            message: 'tab',
+            url: tab.url
+          })
+      } else {
+        //  ensureSendMessage(tabId, { message: 'fail'})
+  /*
+          chrome.tabs.sendMessage( tabId, {
+            message: 'fail'
+          })      */
+      }
+    //}
+
+  });
+
+   //$("#getAuth").click(function () { getAuth(); });
 
 function getAuth() {
     var access_token;
@@ -39,6 +98,7 @@ function getAuth() {
 
 }
 });
+/**
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     if (changeInfo.url) {
       chrome.tabs.sendMessage( tabId, {
@@ -46,6 +106,14 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
         url: changeInfo.url
       })
     }
+});
+
+chrome.tabs.query({'active': true, 'lastFocusedWindow': true}, function (tabs) {
+    var url = tabs[0].url;
+    chrome.tabs.sendMessage( tabId, {
+        message: 'current tab!',
+        url: changeInfo.url
+    })
 });
 var row;
 chrome.runtime.onMessage.addListener(
@@ -86,7 +154,7 @@ function initClient() {
           console.log('Error: ' + reason.result.error.message);
       });
   })
-}
+}*/
 /**
 function appendValues(arr) {
     var params = {

@@ -63,3 +63,49 @@ function getValues() {
     	console.log('Error: ' + reason.result.error.message);
     });
 }
+
+
+/**
+
+function retrieveCity(city) {
+  if (city in mem) {
+    timezone = mem[city]
+    appendTimeElementFromTZ(timezone)
+    console.log('city found in memory')
+  } 
+  else {
+    console.log('proceed as normal')
+    console.log("CITY: " + city)
+
+    var area = parseArea(city)
+    var baseURL = createURLFromArea(area)
+
+    console.log("VISITING: " + baseURL)
+    fetch(baseURL)
+    .then(data => {return data.json()})
+    .then(function(res) {
+      if (res.status == "OK") {
+        const results = groupByTimeZones(res.zones)
+        if (Object.keys(results).length == 1) {
+          let key = Object.keys(results)[0]
+          console.log("all cities in same timezone")
+          return parseClockFromJSON(results[key][0])
+        } else {
+          console.log(res.zones)
+          var label = `Search for "${area}" is too broad. Please use the button near the search bar`
+          return appendTimeDIVToDOM(null, label)
+        }
+      } else if (res.status == "FAILED") {
+        var label = `Timezone for "${area}" Not Found Please use the button near the search bar`
+        console.log(label)
+        return appendTimeDIVToDOM(null, label)
+      }
+    })
+    .then(function(time) {
+      if (time) {
+        console.log("Time: " + time)
+        appendTimeElement(time);
+      }
+    })
+  }
+}**/
