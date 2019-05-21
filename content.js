@@ -64,7 +64,15 @@ function retrieveMem() {
 function findCitiesOnPage(url) {
 	if (url) {
 		var cities = new Set()
-		if (url.includes("linkedin.com/sales/people")) {
+		if (url.includes("linkedin.com/sales/search/people/list/employees-for-account/")) {
+			console.log("We are on a Sales Nav List of Employees")
+			var listItems = $(".search-results__result-list li");
+			people.each(function() {
+				var person = $(this);
+				var city = person.find('.result-lockup__misc-item').text().trim().toLowerCase();
+				cities.add(city)
+			})
+		} else if (url.includes("linkedin.com/sales/people")) {
 			console.log("We are on a Sales Nav Profile")
 			var topCity = $('.profile-topcard__location-data').text().trim().toLowerCase();
 			var bottomCity = $('.profile-experience__position-list li:first .profile-position__company-location').contents().filter(function() {
@@ -73,21 +81,12 @@ function findCitiesOnPage(url) {
 			bottomCity = bottomCity.text().trim().toLowerCase();
 			cities.add(topCity)
 			cities.add(bottomCity)
-		} else if (url.includes("linkedin.com/sales/search/people/list/employees-for-account/")) {
-			console.log("We are on a Sales Nav List of Employees")
-			var listItems = $(".search-results__result-list li");
-			people.each(function() {
-				var person = $(this);
-				var city = person.find('.result-lockup__misc-item').text().trim().toLowerCase();
-				cities.add(city)
-			})
 		} else if (url.includes("linkedin.com/in")) {
 			console.log("We are probably on a LinkedIn Profile")
 			var topCity = $('.pv-top-card-section__location').text().trim().toLowerCase();
 			var bottomCity = $('.pv-entity__location:first').children().last().text().trim().toLowerCase();
 			cities.add(topCity)
 			cities.add(bottomCity)
-
 		} 
 
 		return cities
@@ -170,89 +169,8 @@ async function fetchTZ(cities) {
 	 
 }
 
-function getTZ(remaining) {
-	var remaining = Array.from(remaining)
-	if (remaining.length == 0) { return null }
-	var city = remaining.shift()
-	if (city in mem) { return mem[city] } 
-	else {
-		var baseURL = createURLFromArea(city)
-		fetchTZ(baseURL)
-	}
-}
 
 
-function getTimeZones(cities) {
-	return new Promise(function(resolve, reject) {
-		const timezone = getTimezonesFromCities(cities)
-		if (timezone != null) {
-			console.log("successful: " + timezone)
-			resolve(timezone)
-		} else {
-			console.log("failure :(")
-			reject()
-		}
-	});
-}
-
-function getTimezonesFromCities(cities_arr) {
-	started = true
-	var cities = new Set(cities_arr)
-	console.log("function called")
-	//$(document).ready(function() {
-		$('html').animate({
-	   		scrollTop: $(document).height()
-		}, 
-		function(){
-			//getCity(cities, []) //recursively find the best city from the profile
-
-			return getTimezone(cities, [])
-		});
-	//});
-}
-
-
-
-function getTimezone(remaining, tried) {
-	var remaining = Array.from(remaining)
-	console.log(`remaining length: ${remaining.length}`)
-	if (remaining.length == 0) { return null }
-	if (tried.length > 0) { console.log(`trying recursion with ${remaining[0]}`) }
-	var city = remaining.shift()
-
-	if (city in mem) {
-		console.log('timezone found in memory')
-		return mem[city]
-	} 
-	else {
-		console.log('fetching timezone from API ')
-		var baseURL = createURLFromArea(city)
-		fetch(baseURL)
-		.then(data => {return data.json()})
-		.then(function(res) {
-			if (res.status == "OK") {
-				const results = groupByTimeZones2(res.zones)
-				if (Object.keys(results).length == 1) {
-					let key = Object.keys(results)[0]
-					let json = results[key][0]
-					console.log(`All results have same timezone. saving ${json.zoneName} to ${city}`)
-
-					saveMem(city, json.zoneName)
-						return json.zoneName
-				} else {
-					console.log("Multiple timezones returned. Returning null")
-					console.log(res.zones)
-					saveMem(city, null)
-					return null
-				}
-			} else if (res.status == "FAILED") {
-				console.log("Invalid city input, trying next available city" )
-				return getCity(remaining, tried.concat(city))
-			}
-		})	
-	} 
-	
-}
 
 function getDataFromTimezone(timezone) {
 	if (timezone == null) { return null }
@@ -475,135 +393,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 	findCitiesOnPage(request.url)  
 });**/
 
-//DEPRECATED
-function runScript() {
-	retrieveMem()
-
-	console.log("LISTENING FOR MESSAGES")
-	// chrome.runtime.onMessage.addListener( function(request, sender, sendResponse) {
-	// 	if(request.ping) { sendResponse({pong: true}); return; }
-
-	//     // listen for messages sent from background.js
-	    
-	//     if (request.message === 'tab2') { 
-	//     	console.log("first message recieved")
-	//     	findCitiesOnPage(request.url)
-	// 	} 
-	// 	else {
-	// 		console.log('failed with message ' + request.message)
-	// 	}
-
-	
-	// });
-	chrome.runtime.onMessage.addListener( function(request, sender, sendResponse) {
-
-	if(request.ping) { console.log('hi'); sendResponse({pong: true}); return; }
-
-    // listen for messages sent from background.js
-    if (!started) {
-    	//if (request.message == 'hello') { 
-    		console.log("first message recieved")
-    		findCitiesOnPage(request.url)
-	//	} 
-	//	else {
-	//		console.log('failed with message ' + request.message + " || " + request.url)
-	//	}
-    }
-
-
-
-	});
-}
-
-//DEPRECATED
-function appendTimeDIVToDOM(time, label="") {
-
-
-	var insertionPoint = $('.pv-top-card-section__location')
-	if (url.includes("linkedin.com/sales/people")) {
-		insertionPoint = $('.profile-topcard__connections-data')
-	}
-
-	insertDivInPage(insertionPoint)
-	if (time) {
-		var phone = new Image();
-		phone.onload = function() {}
-		const hours = getHours(time)
-		setDivColor(hours)
-		setDivImage(hours, phone)
-	}
- 	else {
-		$('.time').addClass('time-error') 
-	}
-	$('.time').append(`<span class='timeLabel'> ${label}</span>`); 
-	started = false
-}
-
-//DEPRECATED
-function getCity(remaining, tried) {
-	console.log(remaining)
-	if (remaining.length > 0) {
-		if (tried.length > 0) {console.log(`trying recursion with ${remaining[0]}`) }
-		var city = remaining.shift()
-		console.log("SEARCHING FOR " + city)
-		console.log(`mem:`)
-		console.log(mem)
-
-		if (city in mem) {
-			console.log('city found in memory')
-			timezone = mem[city]
-			console.log(`tz: ${timezone}`)
-			if (timezone) {
-				return getDataFromTimezone(timezone)
-			} else {
-				return getCity(remaining, tried.concat(city))
-			}
-		} 
-		else {
-			//console.log('proceed as normal')
-			//console.log("CITY: " + city)
-	
-			//var area = parseArea(city)
-			var baseURL = createURLFromArea(city)
-
-			//console.log("VISITING: " + baseURL)
-			fetch(baseURL)
-			.then(data => {return data.json()})
-			.then(function(res) {
-				if (res.status == "OK") {
-					const results = groupByTimeZones(res.zones)
-					if (Object.keys(results).length == 1) {
-						let key = Object.keys(results)[0]
-						console.log("all cities in same timezone: ")
-						saveMem(city, results[key][0].zoneName)
-
-						return parseClockFromJSON(results[key][0])
-					} else {
-						console.log(res.zones)
-						saveMem(city, null)
-						return appendTimeElementFromError()
-						//var label = `Your search was unable to yield any results. Please use the <img src="icon_128.png" /> button near the search bar`
-						//return appendTimeDIVToDOM(null, label)
-					}
-				} else if (res.status == "FAILED") {
-					return getCity(remaining, tried.concat(city))
-			
-				}
-			})
-			.then(function(time) {
-				if (time) {
-					console.log("Time: " + time)
-					appendTimeElement(time);
-				}
-			})
-		}
-	} else {
-	//	var label = `Your search was unable to yield any results. Please use the <img src="icon_128.png" /> button near the search bar`
-//		console.log(label)
-		return appendTimeElementFromError()
-//		return appendTimeDIVToDOM(null, label)
-	}
-}
 
 
 //DEPRECATED
