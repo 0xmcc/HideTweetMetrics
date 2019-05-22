@@ -2,12 +2,7 @@
 This chrome utilizes the TimezoneDB API to look up timezones by city names
 **/
 
-var salesNavTopCity = $('.profile-position__company-location').text().trim().toLowerCase();
-var salesNavBottomCity = $('.profile-position__company-location').text().trim().toLowerCase();
 
-
-var one = $('.pv-top-card-section__location').text().trim().toLowerCase();
-var two = $('.pv-entity__location:first').children().last().text().trim().toLowerCase();
 
 const OPEN_HOUR = 9
 const CLOSE_HOUR = 17
@@ -58,19 +53,20 @@ function retrieveMem() {
 
 
 
-
 //THIS FUNCTION'S PURPOSE IS TO RETRIEVE THE LIST OF CITIES ON THE WEBPAGE 
 //FROM EITHER A PROFILE OR A LIST OF PROFILES
 function findCitiesOnPage(url) {
 	if (url) {
-		var cities = new Set()
+		var cities = new Array()
 		if (url.includes("linkedin.com/sales/search/people/list/employees-for-account/")) {
 			console.log("We are on a Sales Nav List of Employees")
-			var listItems = $(".search-results__result-list li");
+			var people = $(".search-results__result-list li");
 			people.each(function() {
 				var person = $(this);
 				var city = person.find('.result-lockup__misc-item').text().trim().toLowerCase();
-				cities.add(city)
+				if (city) {
+					cities.push(city)
+				}
 			})
 		} else if (url.includes("linkedin.com/sales/people")) {
 			console.log("We are on a Sales Nav Profile")
@@ -79,16 +75,18 @@ function findCitiesOnPage(url) {
 				return this.nodeType === 3;
 			});
 			bottomCity = bottomCity.text().trim().toLowerCase();
-			cities.add(topCity)
-			cities.add(bottomCity)
+			//cities.add(topCity)
+			//cities.add(bottomCity)
+			cities = [topCity, bottomCity]
 		} else if (url.includes("linkedin.com/in")) {
 			console.log("We are probably on a LinkedIn Profile")
 			var topCity = $('.pv-top-card-section__location').text().trim().toLowerCase();
 			var bottomCity = $('.pv-entity__location:first').children().last().text().trim().toLowerCase();
-			cities.add(topCity)
-			cities.add(bottomCity)
+			//cities.add(topCity)
+			//cities.add(bottomCity)
+			cities = [topCity, bottomCity]
 		} 
-
+		console.log(cities)
 		return cities
 
 	} else {
@@ -97,40 +95,105 @@ function findCitiesOnPage(url) {
 
 }
 
+function isValidURL(url) {
+	return (url.includes("linkedin.com/sales/search/people/list/employees-for-account/") || 
+		url.includes("linkedin.com/sales/people") || (url.includes("linkedin.com/in")))
+}
 function startProcess(url) {
-	$('body').animate({
-   		scrollTop: $(document).height()
+	console.log("STARTING PROCESS")
+	var WH = $(window).height();  
+  	var SH = $('body').prop("scrollHeight");
+	$('html, body').stop().animate({
+   		scrollTop: SH - WH//$(document).height()
 	}).promise().then(function(){
 		started = true
-		console.log("STARTED")
-
+		console.log("STARTED!!!")
+		removeTimeDiv()
 		//Step 1: Find the cities on the webpage  
-		var cities_set = findCitiesOnPage(url)
-		//Step 2: Fetch Timezone
-		fetchTZ(Array.from(cities_set)).then(function(timezone) {
-			//Wait for Timezone to be retrieved
+		var cities = findCitiesOnPage(url)
+		if (url.includes("linkedin.com/sales/search/people/list/employees-for-account/")) {
+			runScriptForList(cities)
+		} else {
+			cities = new Set(cities)
+			runScriptForProfile(cities)
+
+		}
+	});
+}
+
+function runScriptForProfile(cities) {
+	console.log("PROFILE SCRIPT CALLED")
+	//Step 2: Fetch Timezone
+	fetchTZ(Array.from(cities)).then(function(timezone) {
+		//Wait for Timezone to be retrieved
+		//Step 3: Convert Timezone to Data
+		const data = getDataFromTimezone(timezone)
+		//Step 4: Append DIV With Data
+
+		const insertionPoint = getInsertionPoint()
+		insertDivInPage(insertionPoint)
+
+		if (data != null) {
+			appendDataToDiv(data)
+		} else {
+			appendErrorMSGToDiv()
+		}
+		finish()
+	})
+}
+function finish() {
+	started = false
+	console.log("Finished script")
+}
+function runScriptForList(cities) {
+	processCities(cities).then(function(timezones) {
+		console.log(`${timezones.length} TIMEZONES: ${timezones}`)
+		for (var i = 0; i < timezones.length; i++) {
+			const timezone = timezones[i]
 			//Step 3: Convert Timezone to Data
 			const data = getDataFromTimezone(timezone)
 			//Step 4: Append DIV With Data
-
-			const insertionPoint = getInsertionPoint()
+			const insertionPoint = getInsertionPoint(i)
 			insertDivInPage(insertionPoint)
 
 			if (data != null) {
-				appendDataToDiv(data)
+
+			 	appendDataToDiv(data, i)
 			} else {
-				appendErrorMSGToDiv()
+				//var target = $('.time').eq(i)
+			 	//appendErrorMSGToDiv(target)
 			}
-			started = false
-			console.log("FINISHED")
-		})
-	});
-	
+		}
+		finish()
+	})
+}
+function getInsertionPoint(index = 0) {
+	var insertionPoint;
+	if (url.includes("linkedin.com/sales/search/people/list/employees-for-account/")) {
+		if (index >= 0) {
+			insertionPoint = $(`.result-lockup__misc-list`).eq(index).find(".result-lockup__misc-item")
+		} else {
+			return null
+		}
+	} else if (url.includes("linkedin.com/sales/people")) {
+		insertionPoint = $('.profile-topcard__connections-data')
+	} else {
+		insertionPoint = $('.pv-top-card-section__location')
+	}
+	return insertionPoint
 
 }
+async function processCities(cities) {
+	var timezones = []
+	for (const city of cities) {
+		const tz = await fetchTZ([city])
+		timezones.push(tz)
+	}
+	return timezones
 
+}
 async function fetchTZ(cities) {
-	console.log("CITIES LENGTH: " + cities.length)
+	//console.log("CITIES LENGTH: " + cities.length)
 	if (cities.length == 0) { return null }
 	try {
 		var cities = cities
@@ -138,10 +201,11 @@ async function fetchTZ(cities) {
 		// MEMOIZE RESULTS
 		if (city in mem) { 
 			if (mem[city] == "Unknown") { return fetchTZ(cities) }
+			console.log(city + ' found in memory')
 			return mem[city] 
 		} 
-		 
-		var baseURL = createURLFromArea(city)
+		var area = parseArea(city)
+		var baseURL = createURLFromArea(area)
 		const response = await fetch(baseURL);
 		const res = await response.json();
 		if (res.status == "OK") {
@@ -155,11 +219,12 @@ async function fetchTZ(cities) {
 			} else {
 				console.log("Multiple timezones returned. Returning null")
 				saveMem(city, "Unknown") // STORE RESULTS
-				return null
+				return fetchTZ(cities)
 			}
 		} 
 		else if (res.status == "FAILED") {
 			console.log("Invalid city input, trying next available city" )
+			saveMem(city, "Unknown")
 			return fetchTZ(cities)
 		}
 	} catch (err) {
@@ -195,17 +260,20 @@ function parseArea(area) {
 	area = myTrim(area)
 	if (area.endsWith("area")) {
 		area = area.replace(" area", '');
-	} else if (area.startsWith("greater")) {
+	} 
+	if (area.startsWith("greater")) {
 		area = area.replace("greater ", '');
-	} else if (area.endsWith("city")) {
+	} 
+	if (area.endsWith("city")) {
 		console.log(area + " enters here!! for trimming")
 		area = area.replace(" city", '')
 	}
+	console.log("PARSED area: " + area)
 	return area
 }
 
 function createURLFromArea(loc) {
-	//console.log("OLD AREA: " + loc)
+	console.log("URL FROM AREA: " + loc)
 
 	var regionID;
 	var countryID;
@@ -261,7 +329,7 @@ function createURLFromArea(loc) {
 
 	baseURL += `&country=${countryID}`
 	//baseURL = `https://vip.timezonedb.com/v2.1/get-time-zone?key=QYININQB0JTL&format=json&by=city&city=boston&country=US`
-
+	console.log(baseURL)
 	return baseURL
 }
 
@@ -278,51 +346,65 @@ function saveMem(key, value) {
 
 
 
-function getInsertionPoint() {
-	var insertionPoint = $('.pv-top-card-section__location')
-	if (url.includes("linkedin.com/sales/people")) {
-		insertionPoint = $('.profile-topcard__connections-data')
-	} 
-	return insertionPoint
 
-}
 
 function removeTimeDiv() {
 	$('.time').prev().remove()
 	$('.time').remove()
 }
 function insertDivInPage(insertionPoint) {
-	console.log("inserting div called")
-	removeTimeDiv()
-	removeTimeDiv()
-	removeTimeDiv()
+	console.log("insertDivInPage called")
 
 	insertionPoint.after(`<br /><div class='time'></div>`)
 }
 
-function appendDataToDiv(data) {
+function appendDataToDiv(data, index = 0) {
 	if (data == null) { return; }
 	const hours = data.hours
 	const label = data.label
 
-
-	setDivColor(hours)
-	setDivImage(hours)
-	setDivLabel(label)
-	started = false
+	var target = $('.time').eq(index)
+	setDivColor(target, hours)
+	setDivImage(target, hours)
+	setDivLabel(target, label)
 }
 
 
-function appendErrorMSGToDiv() {
+function appendErrorMSGToDiv(target = $('.time')) {
 	var src = chrome.extension.getURL('images/icon_16.png')
 	var label = 'Time not found. Click ' + 
 					'<img src="' + src + '" alt="browser button">'  + 
 						' near the search bar'
-	$('.time').addClass('time-error') 
-	$('.time').append(`<span class='timeLabelError'> ${label}</span>`); 
+	target.addClass('time-error') 
+	target.append(`<span class='timeLabelError'> ${label}</span>`); 
 }
 
+function setDivColor(target, hours) {
+	if (hours < OPEN_HOUR || hours > CLOSE_HOUR) {
+		target.addClass('time-closed') 
+	} 
+	else { 
+		target.addClass('time-open') 
+	}
+}
 
+function setDivImage(target, hours) {
+	var img = new Image();
+	img.onload = function() {}
+	if (hours < OPEN_HOUR || hours > CLOSE_HOUR) {
+		img.src = chrome.extension.getURL("images/phone_icon_white.png"); 
+	} 
+	else { 
+		img.src = chrome.extension.getURL("images/phone_icon_black.png"); 
+	}
+	target.prepend(img);
+
+}
+
+function setDivLabel(target, label) {
+	target.append(`<span class='timeLabel'> ${label}</span>`); 
+	
+}
 
 
 
@@ -333,44 +415,17 @@ function getHours(input) {
 		return input
 	}
 }
-function setDivColor(hours) {
-	if (hours < OPEN_HOUR || hours > CLOSE_HOUR) {
-		$('.time').addClass('time-closed') 
-	} 
-	else { 
-		$('.time').addClass('time-open') 
-	}
-}
-
-function setDivImage(hours) {
-	var img = new Image();
-	img.onload = function() {}
-	if (hours < OPEN_HOUR || hours > CLOSE_HOUR) {
-		img.src = chrome.extension.getURL("images/phone_icon_white.png"); 
-	} 
-	else { 
-		img.src = chrome.extension.getURL("images/phone_icon_black.png"); 
-	}
-	$('.time').prepend(img);
-
-}
-
-function setDivLabel(label) {
-	$('.time').append(`<span class='timeLabel'> ${label}</span>`); 
-	
-}
-
 retrieveMem()
 
 chrome.runtime.onMessage.addListener( function(request, sender, sendResponse) {
 	if(request.ping) { console.log('hi'); sendResponse({pong: true}); return; }
-	console.log(started)
+	console.log("started: " + started)
 	// listen for messages sent from background.js
 	if (!started) {
 		if (request.message === 'hello') { 
 			console.log("message recieved")
 			$(document).ready(function() {
-				removeTimeDiv()	
+				//removeTimeDiv()	
 
 				url = request.url
 				startProcess(url)
@@ -385,100 +440,12 @@ chrome.runtime.onMessage.addListener( function(request, sender, sendResponse) {
 
 });
 
-//runScript()
-/**
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-	if(request.ping) { sendResponse({pong: true}); return; }
-
-	findCitiesOnPage(request.url)  
-});**/
-
 
 
 //DEPRECATED
-function appendTimeElement(time) {
-	//CONVERTS Mon Apr 22 2019 00:23:15 GMT-0400 (Eastern Daylight Time) INTO: "12:23 AM"
-	var label = time.toLocaleTimeString().replace(/:\d{2}\s/,' ') 
-	appendTimeDIVToDOM(time, label)
-}
-//DEPRECATED
-function getTimezoneFromJSON(json) {
-	saveMem(city, json.zoneName)
-   	return json.zoneName
-	
-}
+// var salesNavTopCity = $('.profile-position__company-location').text().trim().toLowerCase();
+// var salesNavBottomCity = $('.profile-position__company-location').text().trim().toLowerCase();
 
-//DEPRECATED
-function appendTimeElementFromError() {
-	var insertionPoint = $('.pv-top-card-section__location')
-	insertDivInPage(insertionPoint)
-	var img = new Image();
-	img.onload = function() {}
-	//img.src = chrome.extension.getURL("icon_128.png"); 
-	//img.src = chrome.extension.getURL("images/icon_128.png");
-	var url2 = chrome.extension.getURL('images/icon_16.png')
-	img.src = url2
-	img.alt = "chrome button"
-	var label = 'Time not found. Click ' + 
-					'<img src="' + url2 + '"' + 
-						' near the search bar'
-	$('.time').addClass('time-error') 
-	$('.time').append(`<span class='timeLabelError'> ${label}</span>`); 
-}
 
-//DEPRECATED
-
-function formatTimeID(hours, phone) {
-	if (hours < OPEN_HOUR || hours > CLOSE_HOUR) {
-		$('.time').addClass('time-closed') 
-		phone.src = chrome.extension.getURL("images/phone_icon_white.png"); 
-	} 
-	else { 
-		$('.time').addClass('time-open') 
-		phone.src = chrome.extension.getURL("images/phone_icon_black.png"); 
-	}
-}
-
-//DEPRECATED
-
-function appendTimeElementFromTZ(timezone) {
-
-	var date = new Date()
-	var str = date.toLocaleTimeString("en-US", {timeZone: timezone}).replace(/:\d{2}\s/,' ')
-	var hours = parseInt(str.substr(0, str.indexOf(':')))
-	if (str.includes("PM")) { hours += 12 }
-	if (str.includes("12") && (str.includes("AM"))) { hours -= 12}
-	console.log(`hours: ${hours} || str: ${str}`)
-	appendTimeDIVToDOM(hours, str)
-
-}
-
-//DEPRECATED
-
-function selectCity(opt1, opt2) {
-	if (opt1.includes(',')) {
-		return opt1
-	} else {
-		return opt2
-	}
-}
-
-//EXPERIMENTAL -- FINISH CODING
-function appendTime() {
-	$('.time').prev().remove()
-	$('.time').remove()
-	if (request.url.startsWith("https://linkedin.com/sales/people")) {
-		var topCity = $('.profile-topcard__location-data').text().trim().toLowerCase();
-	} else if (request.url.startsWith("https://linkedin.com/sales/search/people/list/employees-for-account/")) {
-		var listItems = $(".search-results__result-list li");
-		people.each(function() {
-			var person = $(this);
-			var city = person.find('.result-lockup__misc-item')
-		})
-	} else {
-		var location = $('.pv-top-card-section__location')
-
-	}
-
-	started = false
-}
+// var one = $('.pv-top-card-section__location').text().trim().toLowerCase();
+// var two = $('.pv-entity__location:first').children().last().text().trim().toLowerCase();

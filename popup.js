@@ -8,7 +8,7 @@ var prevURL = ""
 const groupByTZ = array =>
   array.reduce((newDict, obj) => {
   	const time = new Date(obj["formatted"])
-    const k = obj["zoneName"] + ", " + readableTimeString(time);
+    const k = obj["abbreviation"] + ", " + readableTimeString(time);
     const v = `${obj.cityName}, ${obj.regionName}`
     newDict[k] = (newDict[k] || []).concat([v]);
     return newDict;

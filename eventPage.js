@@ -46,37 +46,36 @@ function ensureSendMessage(tabId, message, callback){
   //       ensureSendMessage(tabs[0].id, {message: "hello", url: tabs[0].url});
 
   //   });
+
+$(document).ready(function () {
+
     chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-      if (changeInfo.status === "complete") {
-        if (changeInfo.url) {
-            //ensureSendMessage(tabId, { message: 'tab', url: changeInfo.url})
+      //if (changeInfo.status === "complete") {
+        var url = changeInfo.url || tab.url
+        if (isValidURL(url)) {
+           //ensureSendMessage(tabId, { message: 'tab', url: changeInfo.url})
+
           chrome.tabs.sendMessage( tabId, {
             message: 'hello',
-            url: changeInfo.url
+            url: url
           })
-        } else if (tab.url) {
-            //ensureSendMessage(tabId, { message: 'taby', url: tab.url})
-
-          
-            chrome.tabs.sendMessage( tabId, {
-              message: 'hello',
-              url: tab.url
-            })
-        } else {
+        }
+        else {
           //  ensureSendMessage(tabId, { message: 'fail'})
     
             chrome.tabs.sendMessage( tabId, {
               message: 'fail'
             })      
         }
-      }
+     // }
 
   });
-$(document).ready(function () {
-
-
   });
-  
+function isValidURL(url) {
+  if (url == null) { return false }
+  return (url.includes("linkedin.com/sales/search/people/list/employees-for-account/") || 
+    url.includes("linkedin.com/sales/people") || (url.includes("linkedin.com/in")))
+}
 
 
    //$("#getAuth").click(function () { getAuth(); });
